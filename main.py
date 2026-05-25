@@ -1,8 +1,8 @@
 import cv2
 import mss as MSS
 import time
-import numpy as np
 import pydirectinput
+import math
 from ultralytics import YOLO
 
 model = YOLO("best.pt").to("cuda")
@@ -10,13 +10,21 @@ cap = cv2.VideoCapture(1)
 
 last_attack_time = 0
 
-def trigger_attack(x1, y1, x2, y2):
+center_x = 320
+center_y = 240
+
+def center_in_box(center_x, center_y, box_x1, box_y1, box_x2, box_y2):
     global last_attack_time
     current_time = time.time()
-    if x1 >= 300 and x2 <= 340 and y1 >= 220 and y2 <= 260:
-        if current_time - last_attack_time >= 2:
-            pydirectinput.leftClick()
-            last_attack_time = current_time
+    if not ((box_x1 <= center_x <= box_x2) and (box_y1 <= center_y <= box_y2)):
+        return
+    
+    if current_time - last_attack_time < 0.1:
+        return
+    
+    print("СТРЕЛЯЮ")
+    pydirectinput.leftClick()
+    last_attack_time = current_time
 
 with MSS.mss() as sct:
     while True:
@@ -36,7 +44,7 @@ with MSS.mss() as sct:
             
                 print(f"Координаты: {x1}, {y1}, {x2}, {y2}")
         
-                trigger_attack(x1, y1, x2, y2)
+                center_in_box(center_x, center_y, x1, y1, x2, y2)
 
         if cv2.waitKey(25) & 0xFF == ord("q"):
             cv2.destroyAllWindows()
