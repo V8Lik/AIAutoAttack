@@ -2,30 +2,32 @@ import cv2
 import mss as MSS
 import time
 import pydirectinput
-import math
 from ultralytics import YOLO
 
-model = YOLO("best.pt").to("cuda")
+model = YOLO("CS2.pt").to("cuda")
 cap = cv2.VideoCapture(1)
 
-last_attack_time = 0
+mouse_down = False
 
 center_x = 320
 center_y = 240
 
 def center_in_box(center_x, center_y, box_x1, box_y1, box_x2, box_y2):
-    global last_attack_time
-    current_time = time.time()
-    if not ((box_x1 <= center_x <= box_x2) and (box_y1 <= center_y <= box_y2)):
-        return
+    global mouse_down
     
-    if current_time - last_attack_time < 0.1:
-        return
+    in_box = (box_x1 <= center_x <= box_x2) and (box_y1 <= center_y <= box_y2)
     
-    print("СТРЕЛЯЮ")
-    pydirectinput.leftClick()
-    last_attack_time = current_time
-
+    if in_box and not mouse_down:
+        pydirectinput.mouseDown(button="left")
+        mouse_down = True
+        print("зажал")
+    
+    if not in_box and mouse_down:
+        pydirectinput.mouseUp(button="left")
+        mouse_down = False
+        print("расжал")
+    
+    
 with MSS.mss() as sct:
     while True:
         last_time = time.time()
@@ -45,7 +47,9 @@ with MSS.mss() as sct:
                 print(f"Координаты: {x1}, {y1}, {x2}, {y2}")
         
                 center_in_box(center_x, center_y, x1, y1, x2, y2)
-
-        if cv2.waitKey(25) & 0xFF == ord("q"):
+                
+        if cv2.waitKey(1) & 0xFF == ord("q"):
+            if mouse_down:
+                pydirectinput.move("left")
             cv2.destroyAllWindows()
             break
